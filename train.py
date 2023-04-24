@@ -32,8 +32,8 @@ if __name__ == "__main__":
     LEARNING_RATE = float(args.LEARNING_RATE)
 
     # Setup directories
-    train_dir = "../Datasets/train"
-    test_dir = "../Datasets/valid"
+    train_dir = "Datasets/train"
+    test_dir = "Datasets/valid"
 
     # Setup target device
     device = "cuda" if torch.cuda.is_available() else "cpu" 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     trained = args.TRAINED == "True"
     # Load if pre-trained
     if trained:
-        model_data = utils.load_model(model = model, file_dir = "../models", model_name = f"{model_name}.pth")
+        model_data = utils.load_model(model = model, file_dir = "models", model_name = f"{model_name}.pth")
         model = model_data["model"]
     
     # Set loss and optimizer
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     # Save the model with help from utils.py
     utils.save_model(model=model,
-                    target_dir="../models",
+                    target_dir="models",
                     model_name=f"{model_name}.pth",
                     class_names=class_names)
 

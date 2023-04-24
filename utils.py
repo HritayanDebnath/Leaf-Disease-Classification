@@ -89,7 +89,7 @@ def save_data(
         model_name (str): takes in the model name
         data (Dict): takes in the data as Dictionary
     """
-    result_dir = Path("../results") / Path(model_name)
+    result_dir = Path("results") / Path(model_name)
     os.makedirs(result_dir, exist_ok=True)
     csv_columns = ["epoch", "train_loss",  "train_acc", "test_loss", "test_acc"]
     csv_file = result_dir / Path("result.csv")
@@ -122,7 +122,7 @@ def load_data(
         model_name (str): takes in the model name
         data (Dict): takes in the data as Dictionary
     """
-    result_dir = Path("../results") / Path(model_name)
+    result_dir = Path("results") / Path(model_name)
     csv_columns = ["epoch", "train_loss",  "train_acc", "test_loss", "test_acc"]
     result = {
         "epoch": [],
