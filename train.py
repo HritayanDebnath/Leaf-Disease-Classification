@@ -4,6 +4,7 @@ Trains a PyTorch image classification model using device-agnostic code.
 
 import os
 import torch
+
 import data_setup, engine, model_builder, utils
 import argparse
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
 
     # Create transforms
     data_transform = transforms.Compose([
-        transforms.Resize((64, 64)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor()
     ])
 
@@ -73,6 +74,8 @@ if __name__ == "__main__":
     
     else :
         raise Exception("Wrong Model.")
+    
+
 
     trained = args.TRAINED == "True"
     # Load if pre-trained

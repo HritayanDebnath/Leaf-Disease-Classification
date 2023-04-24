@@ -62,7 +62,7 @@ def train_step(
         train_acc += (y_pred_class == y).sum().item()/len(y_pred)
         if batch % 10 == 0:
             print(
-                f"\rTraining Progress : {batch + 1} / {len(dataloader)}                                    ",
+                f"\rTraining Progress : {batch} / {len(dataloader)}                                    ",
                 end=""
             )
 
@@ -119,7 +119,7 @@ def test_step(
             test_pred_labels = test_pred_logits.argmax(dim=1)
             test_acc += ((test_pred_labels == y).sum().item()/len(test_pred_labels))
             print(
-                f"\rTesting Progress : {batch + 1} / {len(dataloader)}                                 ",
+                f"\rTesting Progress : {batch} / {len(dataloader)}                                 ",
                 end=""
             )
 
