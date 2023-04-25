@@ -79,11 +79,11 @@ if __name__ == "__main__":
         )
         model_name = "EfficientNet"
     
-    elif model_name == "mobilenetv2":
-        model = model_builder.MobileNetV2(
+    elif model_name == "mobilenetv3":
+        model = model_builder.MobileNetV3(
             num_classes=len(class_names)
         )
-        model_name = "MobileNetV2"
+        model_name = "MobileNetV3"
 
     elif model_name == "squeezenet":
         model = model_builder.SqueezeNet(
