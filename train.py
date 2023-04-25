@@ -66,17 +66,31 @@ if __name__ == "__main__":
             stride=1
         )
         model_name = "VGG19"
+
     elif model_name == "resnet18":
         model = model_builder.ResNet18(
             num_classes=len(class_names)
         )
         model_name = "ResNet18"
+
     elif model_name == "efficientnet":
-        model = model_builder.ResNet18(
+        model = model_builder.EfficientNet(
             num_classes=len(class_names)
         )
         model_name = "EfficientNet"
     
+    elif model_name == "mobilenetv2":
+        model = model_builder.MobileNetV2(
+            num_classes=len(class_names)
+        )
+        model_name = "MobileNetV2"
+
+    elif model_name == "squeezenet":
+        model = model_builder.SqueezeNet(
+            num_classes=len(class_names)
+        )
+        model_name = "SqueezeNet"
+
     else :
         raise Exception("Wrong Model.")
     

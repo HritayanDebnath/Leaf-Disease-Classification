@@ -275,3 +275,121 @@ class EfficientNet(nn.Module):
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
+
+import torch
+import torch.nn as nn
+
+class MobileBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1, expansion_ratio=6):
+        super(MobileBlock, self).__init__()
+        self.exp_channels = in_channels * expansion_ratio
+        self.conv1 = nn.Conv2d(in_channels, self.exp_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(self.exp_channels)
+        self.conv2 = nn.Conv2d(self.exp_channels, self.exp_channels, kernel_size=3, stride=stride, padding=1, groups=self.exp_channels, bias=False)
+        self.bn2 = nn.BatchNorm2d(self.exp_channels)
+        self.conv3 = nn.Conv2d(self.exp_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn3 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        identity = x
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu(x)
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x += identity
+        x = self.relu(x)
+        return x
+
+class MobileNetV2(nn.Module):
+    def __init__(self, num_classes=10):
+        super(MobileNetV2, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.layers = nn.Sequential(
+            MobileBlock(32, 16, stride=1, expansion_ratio=1),
+            MobileBlock(16, 24, stride=2),
+            MobileBlock(24, 24),
+            MobileBlock(24, 32, stride=2),
+            MobileBlock(32, 32),
+            MobileBlock(32, 32),
+            MobileBlock(32, 64, stride=2),
+            MobileBlock(64, 64),
+            MobileBlock(64, 64),
+            MobileBlock(64, 64),
+            MobileBlock(64, 96),
+            MobileBlock(96, 96),
+            MobileBlock(96, 96),
+            MobileBlock(96, 160, stride=2),
+            MobileBlock(160, 160),
+            MobileBlock(160, 160),
+            MobileBlock(160, 320),
+            nn.Conv2d(320, 1280, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(1280),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1))
+        )
+        self.fc = nn.Linear(1280, num_classes)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = nn.ReLU()(x)
+        x = self.layers(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
+
+class FireModule(nn.Module):
+    def __init__(self, inplanes, squeeze_planes,
+                 expand1x1_planes, expand3x3_planes):
+        super(FireModule, self).__init__()
+        self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
+        self.squeeze_activation = nn.ReLU(inplace=True)
+        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes,
+                                   kernel_size=1)
+        self.expand1x1_activation = nn.ReLU(inplace=True)
+        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes,
+                                   kernel_size=3, padding=1)
+        self.expand3x3_activation = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.squeeze_activation(self.squeeze(x))
+        return torch.cat([
+            self.expand1x1_activation(self.expand1x1(x)),
+            self.expand3x3_activation(self.expand3x3(x))
+        ], 1)
+
+class SqueezeNet(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(SqueezeNet, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 96, kernel_size=7, stride=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            FireModule(96, 16, 64, 64),
+            FireModule(128, 16, 64, 64),
+            FireModule(128, 32, 128, 128),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            FireModule(256, 32, 128, 128),
+            FireModule(256, 48, 192, 192),
+            FireModule(384, 48, 192, 192),
+            FireModule(384, 64, 256, 256),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            FireModule(512, 64, 256, 256),
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5),
+            nn.Conv2d(512, num_classes, kernel_size=1),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d((1, 1))
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return x.view(x.size(0), -1)
