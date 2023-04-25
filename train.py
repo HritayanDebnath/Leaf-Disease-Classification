@@ -73,11 +73,11 @@ if __name__ == "__main__":
         )
         model_name = "ResNet18"
 
-    elif model_name == "efficientnet":
-        model = model_builder.EfficientNet(
+    elif model_name == "mnasnet":
+        model = model_builder.MnasNet(
             num_classes=len(class_names)
         )
-        model_name = "EfficientNet"
+        model_name = "MnasNet"
     
     elif model_name == "mobilenetv3":
         model = model_builder.MobileNetV3(

@@ -245,46 +245,6 @@ class ResNet18(nn.Module):
         return x 
 
 
-
-### EfficientNet
-
-class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
-        super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.bn(x)
-        x = self.relu(x)
-        return x
-
-class EfficientNet(nn.Module):
-    def __init__(self, num_classes=10):
-        super(EfficientNet, self).__init__()
-        self.conv1 = ConvBlock(3, 32, kernel_size=3, padding=1)
-        self.conv2 = ConvBlock(32, 64, kernel_size=3, padding=1)
-        self.conv3 = ConvBlock(64, 128, kernel_size=3, padding=1)
-        self.conv4 = ConvBlock(128, 256, kernel_size=3, padding=1)
-        self.conv5 = ConvBlock(256, 512, kernel_size=3, padding=1)
-        self.avgpool = nn.AdaptiveAvgPool2d(output_size=1)
-        self.fc = nn.Linear(512, num_classes)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
-        return x
-
-
-
 ### MobileNetV3
 
 class Hswish(nn.Module):
@@ -407,52 +367,162 @@ class MobileNetV3(nn.Module):
 
 ### SqueezeNet
 
-class FireModule(nn.Module):
-    def __init__(self, inplanes, squeeze_planes,
-                 expand1x1_planes, expand3x3_planes):
-        super(FireModule, self).__init__()
+class Fire(nn.Module):
+    def __init__(self, inplanes: int, squeeze_planes: int, expand1x1_planes: int, expand3x3_planes: int) -> None:
+        super().__init__()
+        self.inplanes = inplanes
         self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
         self.squeeze_activation = nn.ReLU(inplace=True)
-        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes,
-                                   kernel_size=1)
+        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes, kernel_size=1)
         self.expand1x1_activation = nn.ReLU(inplace=True)
-        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes,
-                                   kernel_size=3, padding=1)
+        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes, kernel_size=3, padding=1)
         self.expand3x3_activation = nn.ReLU(inplace=True)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.squeeze_activation(self.squeeze(x))
-        return torch.cat([
-            self.expand1x1_activation(self.expand1x1(x)),
-            self.expand3x3_activation(self.expand3x3(x))
-        ], 1)
+        return torch.cat(
+            [self.expand1x1_activation(self.expand1x1(x)), self.expand3x3_activation(self.expand3x3(x))], 1
+        )
+
 
 class SqueezeNet(nn.Module):
-    def __init__(self, num_classes=1000):
-        super(SqueezeNet, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 96, kernel_size=7, stride=2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-            FireModule(96, 16, 64, 64),
-            FireModule(128, 16, 64, 64),
-            FireModule(128, 32, 128, 128),
-            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-            FireModule(256, 32, 128, 128),
-            FireModule(256, 48, 192, 192),
-            FireModule(384, 48, 192, 192),
-            FireModule(384, 64, 256, 256),
-            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-            FireModule(512, 64, 256, 256),
-        )
+    def __init__(self, version: str = "1_0", num_classes: int = 1000, dropout: float = 0.5) -> None:
+        super().__init__()
+        _log_api_usage_once(self)
+        self.num_classes = num_classes
+        if version == "1_0":
+            self.features = nn.Sequential(
+                nn.Conv2d(3, 96, kernel_size=7, stride=2),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(96, 16, 64, 64),
+                Fire(128, 16, 64, 64),
+                Fire(128, 32, 128, 128),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(256, 32, 128, 128),
+                Fire(256, 48, 192, 192),
+                Fire(384, 48, 192, 192),
+                Fire(384, 64, 256, 256),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(512, 64, 256, 256),
+            )
+        elif version == "1_1":
+            self.features = nn.Sequential(
+                nn.Conv2d(3, 64, kernel_size=3, stride=2),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(64, 16, 64, 64),
+                Fire(128, 16, 64, 64),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(128, 32, 128, 128),
+                Fire(256, 32, 128, 128),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(256, 48, 192, 192),
+                Fire(384, 48, 192, 192),
+                Fire(384, 64, 256, 256),
+                Fire(512, 64, 256, 256),
+            )
+        else:
+            # FIXME: Is this needed? SqueezeNet should only be called from the
+            # FIXME: squeezenet1_x() functions
+            # FIXME: This checking is not done for the other models
+            raise ValueError(f"Unsupported SqueezeNet version {version}: 1_0 or 1_1 expected")
+
+        # Final convolution is initialized differently from the rest
+        final_conv = nn.Conv2d(512, self.num_classes, kernel_size=1)
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5),
-            nn.Conv2d(512, num_classes, kernel_size=1),
-            nn.ReLU(inplace=True),
-            nn.AdaptiveAvgPool2d((1, 1))
+            nn.Dropout(p=dropout), final_conv, nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1))
+        )
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                if m is final_conv:
+                    init.normal_(m.weight, mean=0.0, std=0.01)
+                else:
+                    init.kaiming_uniform_(m.weight)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.features(x)
+        x = self.classifier(x)
+        return torch.flatten(x, 1)
+
+
+### MnasNet
+
+class InvertedResidual(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, expansion_factor):
+        super().__init__()
+        self.stride = stride
+        self.use_residual = in_channels == out_channels and stride == 1
+        hidden_dim = int(in_channels * expansion_factor)
+        self.expand = nn.Sequential(
+            nn.Conv2d(in_channels, hidden_dim, kernel_size=1, bias=False),
+            nn.BatchNorm2d(hidden_dim),
+            nn.ReLU6(inplace=True)
+        )
+        self.depthwise = nn.Sequential(
+            nn.Conv2d(hidden_dim, hidden_dim, kernel_size=kernel_size,
+                      stride=stride, padding=kernel_size // 2,
+                      groups=hidden_dim, bias=False),
+            nn.BatchNorm2d(hidden_dim),
+            nn.ReLU6(inplace=True)
+        )
+        self.project = nn.Sequential(
+            nn.Conv2d(hidden_dim, out_channels, kernel_size=1,
+                      bias=False),
+            nn.BatchNorm2d(out_channels)
         )
 
     def forward(self, x):
-        x = self.features(x)
+        if self.use_residual:
+            return x + self.project(self.depthwise(self.expand(x)))
+        else:
+            return self.project(self.depthwise(self.expand(x)))
+
+class MnasNet(nn.Module):
+    def __init__(self, num_classes=1000):
+        super().__init__()
+        self.num_classes = num_classes
+        self.stem = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3,
+                      stride=2, padding=1,
+                      bias=False),
+            nn.BatchNorm2d(32),
+            nn.ReLU6(inplace=True)
+        )
+        self.layers = nn.Sequential(
+            InvertedResidual(32, 16, 3, 1, 1),
+            InvertedResidual(16, 24, 3, 2, 6),
+            InvertedResidual(24, 24, 3, 1, 6),
+            InvertedResidual(24, 40, 5, 2, 6),
+            InvertedResidual(40, 40, 5, 1, 6),
+            InvertedResidual(40, 40, 5, 1, 6),
+            InvertedResidual(40, 80, 3, 2, 6),
+            InvertedResidual(80, 80, 3, 1 ,6),
+            InvertedResidual(80 ,80 ,3 ,1 ,6),
+            InvertedResidual(80 ,96 ,3 ,1 ,6),
+            InvertedResidual(96 ,96 ,3 ,1 ,6),
+            InvertedResidual(96 ,192 ,5 ,2 ,6),
+            InvertedResidual(192 ,192 ,5 ,1 ,6),
+            InvertedResidual(192 ,192 ,5 ,1 ,6),
+            InvertedResidual(192 ,320 ,3 ,1 ,6)
+        )
+        self.head = nn.Sequential(
+            nn.Conv2d(320 ,1280 ,kernel_size=1 ,
+                      bias=False),
+            nn.BatchNorm2d(1280),
+            nn.ReLU6(inplace=True)
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((1))
+        self.classifier = nn.Linear(1280,num_classes)
+
+    def forward(self,x):
+        x = self.stem(x)
+        x = self.layers(x)
+        x = self.head(x)
+        x = self.avgpool(x)
+        x = x.view(-1,x.shape[1])
         x = self.classifier(x)
-        return x.view(x.size(0), -1)
+        return x
