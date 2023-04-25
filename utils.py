@@ -40,7 +40,7 @@ def save_model(
     model_save_path = target_dir_path / model_name
 
     # Save the model state_dict()
-    print(f"\n[INFO] Saving model to: {model_save_path}")
+    print(f"\n\n[INFO] Saving model to: {model_save_path}")
     torch.save(
         {
             "model": model,

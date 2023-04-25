@@ -4,6 +4,7 @@ Contains PyTorch model code to instantiate a VGG19 model.
 import torch
 from torch import nn
 import torch.nn.functional as F
+import math
 
 ### VGG19
 
@@ -119,32 +120,32 @@ class VGG19(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size = 2, stride = 2)
         
     def forward(self, x):
-        out = self.conv_1_1(x)
-        out = self.conv_1_2(out)
-        out = self.pool(out)
-        out = self.conv_2_1(out)
-        out = self.conv_2_2(out)
-        out = self.pool(out)
-        out = self.conv_3_1(out)
-        out = self.conv_3_2(out)
-        out = self.conv_3_3(out)
-        out = self.conv_3_4(out)
-        out = self.pool(out)
-        out = self.conv_4_1(out)
-        out = self.conv_4_2(out)
-        out = self.conv_4_3(out)
-        out = self.conv_4_4(out)
-        out = self.pool(out)
-        out = self.conv_5_1(out)
-        out = self.conv_5_2(out)
-        out = self.conv_5_3(out)
-        out = self.conv_5_4(out)
-        out = self.pool(out)
-        out = out.reshape(out.size(0), -1)
-        out = self.fc(out)
-        out = self.fc1(out)
-        out = self.fc2(out)
-        return out
+        x = self.conv_1_1(x)
+        x = self.conv_1_2(x)
+        x = self.pool(x)
+        x = self.conv_2_1(x)
+        x = self.conv_2_2(x)
+        x = self.pool(x)
+        x = self.conv_3_1(x)
+        x = self.conv_3_2(x)
+        x = self.conv_3_3(x)
+        x = self.conv_3_4(x)
+        x = self.pool(x)
+        x = self.conv_4_1(x)
+        x = self.conv_4_2(x)
+        x = self.conv_4_3(x)
+        x = self.conv_4_4(x)
+        x = self.pool(x)
+        x = self.conv_5_1(x)
+        x = self.conv_5_2(x)
+        x = self.conv_5_3(x)
+        x = self.conv_5_4(x)
+        x = self.pool(x)
+        x = x.reshape(x.size(0), -1)
+        x = self.fc(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x
 
 
 
@@ -310,20 +311,6 @@ class MobileNetV3_Stem(nn.Module):
     def forward(self, x):
         return self.stem(x)
 
-class Bottlenecks(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride, expansion_factor, repeat):
-        super(Bottlenecks, self).__init__()
-        layers = []
-        for i in range(repeat):
-            if i == 0:
-                layers.append(InvertedResidualBlock(in_channels, out_channels, stride, expansion_factor))
-            else:
-                layers.append(InvertedResidualBlock(out_channels, out_channels, 1, expansion_factor))
-        self.bottlenecks = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.bottlenecks(x)
-
 class Classifier(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(Classifier, self).__init__()
@@ -365,86 +352,51 @@ class MobileNetV3(nn.Module):
         return x
 
 
-### SqueezeNet
-class fire(nn.Module):
-    def __init__(self, inplanes, squeeze_planes, expand_planes):
-        super(fire, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1, stride=1)
-        self.bn1 = nn.BatchNorm2d(squeeze_planes)
-        self.relu1 = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(squeeze_planes, expand_planes, kernel_size=1, stride=1)
-        self.bn2 = nn.BatchNorm2d(expand_planes)
-        self.conv3 = nn.Conv2d(squeeze_planes, expand_planes, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(expand_planes)
-        self.relu2 = nn.ReLU(inplace=True)
+### AlexNet
 
-        # using MSR initilization
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.in_channels
-                m.weight.data.normal_(0, math.sqrt(2./n))
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu1(x)
-        out1 = self.conv2(x)
-        out1 = self.bn2(out1)
-        out2 = self.conv3(x)
-        out2 = self.bn3(out2)
-        out = torch.cat([out1, out2], 1)
-        out = self.relu2(out)
-        return out
-
-
-class SqueezeNet(nn.Module):
-    def __init__(self):
-        super(SqueezeNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 96, kernel_size=3, stride=1, padding=1) # 32
-        self.bn1 = nn.BatchNorm2d(96)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2) # 16
-        self.fire2 = fire(96, 16, 64)
-        self.fire3 = fire(128, 16, 64)
-        self.fire4 = fire(128, 32, 128)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2) # 8
-        self.fire5 = fire(256, 32, 128)
-        self.fire6 = fire(256, 48, 192)
-        self.fire7 = fire(384, 48, 192)
-        self.fire8 = fire(384, 64, 256)
-        self.maxpool3 = nn.MaxPool2d(kernel_size=2, stride=2) # 4
-        self.fire9 = fire(512, 64, 256)
-        self.conv2 = nn.Conv2d(512, 10, kernel_size=1, stride=1)
-        self.avg_pool = nn.AvgPool2d(kernel_size=4, stride=4)
-        self.softmax = nn.LogSoftmax(dim=1)
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.in_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-
+class AlexNet(nn.Module):
+    def __init__(self, num_classes: int = 1000, dropout: float = 0.5) -> None:
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 192, kernel_size=5, padding=2),
+            nn.BatchNorm2d(192),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.BatchNorm2d(384),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=dropout),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.BatchNorm1d(4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=dropout),
+            nn.Linear(4096, 4096),
+            nn.BatchNorm1d(4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, num_classes),
+        )
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool1(x)
-        x = self.fire2(x)
-        x = self.fire3(x)
-        x = self.fire4(x)
-        x = self.maxpool2(x)
-        x = self.fire5(x)
-        x = self.fire6(x)
-        x = self.fire7(x)
-        x = self.fire8(x)
-        x = self.maxpool3(x)
-        x = self.fire9(x)
-        x = self.conv2(x)
-        x = self.avg_pool(x)
-        x = self.softmax(x)
-        return x
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x 
+
 
 
 ### MnasNet
@@ -678,3 +630,75 @@ class ShuffleNetV2(nn.Module):
             nn.BatchNorm2d(oup),
             nn.ReLU(inplace=True)
         )
+
+
+### SqueezeNet
+
+class Expand(torch.nn.Module):
+    def __init__(self, in_channels, e1_out_channles, e3_out_channles):
+        super(Expand, self).__init__()
+        self.conv_1x1 = torch.nn.Conv2d(in_channels, e1_out_channles, (1, 1))
+        self.bn1x1 = torch.nn.BatchNorm2d(e1_out_channles)
+        self.conv_3x3 = torch.nn.Conv2d(in_channels, e3_out_channles, (3, 3), padding=1)
+        self.bn3x3 = torch.nn.BatchNorm2d(e3_out_channles)
+
+    def forward(self, x):
+        o1 = self.bn1x1(self.conv_1x1(x))
+        o3 = self.bn3x3(self.conv_3x3(x))
+        return torch.cat((o1, o3), dim=1)
+
+
+class Fire(torch.nn.Module):
+    """
+      Fire module in SqueezeNet
+      out_channles = e1x1 + e3x3
+      Eg.: input: ?xin_channelsx?x?
+           output: ?x(e1x1+e3x3)x?x?
+    """
+    def __init__(self, in_channels, s1x1, e1x1, e3x3):
+        super(Fire, self).__init__()
+
+        # squeeze 
+        self.squeeze = torch.nn.Conv2d(in_channels, s1x1, (1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(s1x1)
+        self.sq_act = torch.nn.LeakyReLU(0.1)
+
+        # expand
+        self.expand = Expand(s1x1, e1x1, e3x3)
+        self.bn2 = torch.nn.BatchNorm2d(e1x1+e3x3)
+        self.ex_act = torch.nn.LeakyReLU(0.1)
+        
+
+    def forward(self, x):
+        x = self.sq_act(self.bn1(self.squeeze(x)))
+        x = self.ex_act(self.bn2(self.expand(x)))
+        return x
+
+class SqueezeNet(torch.nn.Module):
+    def __init__(self, num_classes):
+        super(SqueezeNet, self).__init__()
+        self.net = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels=3, out_channels=96, kernel_size=(7, 7), stride=2),
+                torch.nn.BatchNorm2d(96),
+                torch.nn.ReLU(),
+                torch.nn.MaxPool2d(kernel_size=(3, 3), stride=2),
+                Fire(in_channels=96, s1x1=16, e1x1=64, e3x3=64),
+                Fire(in_channels=128, s1x1=16, e1x1=64, e3x3=64),
+                Fire(in_channels=128, s1x1=32, e1x1=128, e3x3=128),
+                torch.nn.MaxPool2d(kernel_size=(3, 3), stride=2),
+                Fire(in_channels=256, s1x1=32, e1x1=128, e3x3=128),
+                Fire(in_channels=256, s1x1=48, e1x1=192, e3x3=192),
+                Fire(in_channels=384, s1x1=48, e1x1=192, e3x3=192),
+                Fire(in_channels=384, s1x1=64, e1x1=256, e3x3=256),
+                torch.nn.MaxPool2d(kernel_size=(3, 3), stride=2, padding=1),
+                Fire(in_channels=512, s1x1=64, e1x1=256, e3x3=256),
+                torch.nn.BatchNorm2d(512),
+                torch.nn.ReLU(),
+                torch.nn.Conv2d(in_channels=512, out_channels=num_classes, kernel_size=(1, 1)),
+                torch.nn.AvgPool2d(kernel_size=(13, 13), stride=1)
+                )
+
+    def forward(self, x):
+        x = self.net(x)
+        return x.view(x.size(0), -1)
+
