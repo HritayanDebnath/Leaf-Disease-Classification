@@ -366,87 +366,85 @@ class MobileNetV3(nn.Module):
 
 
 ### SqueezeNet
+class fire(nn.Module):
+    def __init__(self, inplanes, squeeze_planes, expand_planes):
+        super(fire, self).__init__()
+        self.conv1 = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1, stride=1)
+        self.bn1 = nn.BatchNorm2d(squeeze_planes)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(squeeze_planes, expand_planes, kernel_size=1, stride=1)
+        self.bn2 = nn.BatchNorm2d(expand_planes)
+        self.conv3 = nn.Conv2d(squeeze_planes, expand_planes, kernel_size=3, stride=1, padding=1)
+        self.bn3 = nn.BatchNorm2d(expand_planes)
+        self.relu2 = nn.ReLU(inplace=True)
 
-class Fire(nn.Module):
-    def __init__(self, inplanes: int, squeeze_planes: int, expand1x1_planes: int, expand3x3_planes: int) -> None:
-        super().__init__()
-        self.inplanes = inplanes
-        self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
-        self.squeeze_activation = nn.ReLU(inplace=True)
-        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes, kernel_size=1)
-        self.expand1x1_activation = nn.ReLU(inplace=True)
-        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes, kernel_size=3, padding=1)
-        self.expand3x3_activation = nn.ReLU(inplace=True)
+        # using MSR initilization
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.in_channels
+                m.weight.data.normal_(0, math.sqrt(2./n))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.squeeze_activation(self.squeeze(x))
-        return torch.cat(
-            [self.expand1x1_activation(self.expand1x1(x)), self.expand3x3_activation(self.expand3x3(x))], 1
-        )
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+        out1 = self.conv2(x)
+        out1 = self.bn2(out1)
+        out2 = self.conv3(x)
+        out2 = self.bn3(out2)
+        out = torch.cat([out1, out2], 1)
+        out = self.relu2(out)
+        return out
 
 
 class SqueezeNet(nn.Module):
-    def __init__(self, version: str = "1_0", num_classes: int = 1000, dropout: float = 0.5) -> None:
-        super().__init__()
-        _log_api_usage_once(self)
-        self.num_classes = num_classes
-        if version == "1_0":
-            self.features = nn.Sequential(
-                nn.Conv2d(3, 96, kernel_size=7, stride=2),
-                nn.ReLU(inplace=True),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(96, 16, 64, 64),
-                Fire(128, 16, 64, 64),
-                Fire(128, 32, 128, 128),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(256, 32, 128, 128),
-                Fire(256, 48, 192, 192),
-                Fire(384, 48, 192, 192),
-                Fire(384, 64, 256, 256),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(512, 64, 256, 256),
-            )
-        elif version == "1_1":
-            self.features = nn.Sequential(
-                nn.Conv2d(3, 64, kernel_size=3, stride=2),
-                nn.ReLU(inplace=True),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(64, 16, 64, 64),
-                Fire(128, 16, 64, 64),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(128, 32, 128, 128),
-                Fire(256, 32, 128, 128),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(256, 48, 192, 192),
-                Fire(384, 48, 192, 192),
-                Fire(384, 64, 256, 256),
-                Fire(512, 64, 256, 256),
-            )
-        else:
-            # FIXME: Is this needed? SqueezeNet should only be called from the
-            # FIXME: squeezenet1_x() functions
-            # FIXME: This checking is not done for the other models
-            raise ValueError(f"Unsupported SqueezeNet version {version}: 1_0 or 1_1 expected")
-
-        # Final convolution is initialized differently from the rest
-        final_conv = nn.Conv2d(512, self.num_classes, kernel_size=1)
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=dropout), final_conv, nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1))
-        )
-
+    def __init__(self):
+        super(SqueezeNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 96, kernel_size=3, stride=1, padding=1) # 32
+        self.bn1 = nn.BatchNorm2d(96)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2) # 16
+        self.fire2 = fire(96, 16, 64)
+        self.fire3 = fire(128, 16, 64)
+        self.fire4 = fire(128, 32, 128)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2) # 8
+        self.fire5 = fire(256, 32, 128)
+        self.fire6 = fire(256, 48, 192)
+        self.fire7 = fire(384, 48, 192)
+        self.fire8 = fire(384, 64, 256)
+        self.maxpool3 = nn.MaxPool2d(kernel_size=2, stride=2) # 4
+        self.fire9 = fire(512, 64, 256)
+        self.conv2 = nn.Conv2d(512, 10, kernel_size=1, stride=1)
+        self.avg_pool = nn.AvgPool2d(kernel_size=4, stride=4)
+        self.softmax = nn.LogSoftmax(dim=1)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                if m is final_conv:
-                    init.normal_(m.weight, mean=0.0, std=0.01)
-                else:
-                    init.kaiming_uniform_(m.weight)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
+                n = m.kernel_size[0] * m.kernel_size[1] * m.in_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.features(x)
-        x = self.classifier(x)
-        return torch.flatten(x, 1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool1(x)
+        x = self.fire2(x)
+        x = self.fire3(x)
+        x = self.fire4(x)
+        x = self.maxpool2(x)
+        x = self.fire5(x)
+        x = self.fire6(x)
+        x = self.fire7(x)
+        x = self.fire8(x)
+        x = self.maxpool3(x)
+        x = self.fire9(x)
+        x = self.conv2(x)
+        x = self.avg_pool(x)
+        x = self.softmax(x)
+        return x
 
 
 ### MnasNet
@@ -526,3 +524,157 @@ class MnasNet(nn.Module):
         x = x.view(-1,x.shape[1])
         x = self.classifier(x)
         return x
+
+
+### ShuffleNetV2
+
+class ShuffleInvertedResidual(nn.Module):
+    def __init__(self, inp, oup, stride, benchmodel):
+        super(ShuffleInvertedResidual, self).__init__()
+        self.benchmodel = benchmodel
+        self.stride = stride
+        assert stride in [1, 2]
+
+        oup_inc = oup//2
+        
+        if self.benchmodel == 1:
+            #assert inp == oup_inc
+        	self.banch2 = nn.Sequential(
+                # pw
+                nn.Conv2d(oup_inc, oup_inc, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup_inc),
+                nn.ReLU(inplace=True),
+                # dw
+                nn.Conv2d(oup_inc, oup_inc, 3, stride, 1, groups=oup_inc, bias=False),
+                nn.BatchNorm2d(oup_inc),
+                # pw-linear
+                nn.Conv2d(oup_inc, oup_inc, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup_inc),
+                nn.ReLU(inplace=True),
+            )                
+        else:                  
+            self.banch1 = nn.Sequential(
+                nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
+                nn.BatchNorm2d(inp),
+                nn.Conv2d(inp, oup_inc, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup_inc),
+                nn.ReLU(inplace=True),
+            )        
+    
+            self.banch2 = nn.Sequential(
+                # pw
+                nn.Conv2d(inp, oup_inc, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup_inc),
+                nn.ReLU(inplace=True),
+                # dw
+                nn.Conv2d(oup_inc, oup_inc, 3, stride, 1, groups=oup_inc, bias=False),
+                nn.BatchNorm2d(oup_inc),
+                # pw-linear
+                nn.Conv2d(oup_inc, oup_inc, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup_inc),
+                nn.ReLU(inplace=True),
+            )
+          
+    @staticmethod
+    def _concat(x, out):
+        # concatenate along channel axis
+        return torch.cat((x, out), 1)        
+
+    def forward(self, x):
+        if 1==self.benchmodel:
+            x1 = x[:, :(x.shape[1]//2), :, :]
+            x2 = x[:, (x.shape[1]//2):, :, :]
+            out = self._concat(x1, self.banch2(x2))
+        elif 2==self.benchmodel:
+            out = self._concat(self.banch1(x), self.banch2(x))
+
+        return self.channel_shuffle(out, 2)
+
+    
+    def channel_shuffle(self, x, groups):
+        batchsize, num_channels, height, width = x.data.size()
+
+        channels_per_group = num_channels // groups
+        
+        # reshape
+        x = x.view(batchsize, groups, 
+            channels_per_group, height, width)
+
+        x = torch.transpose(x, 1, 2).contiguous()
+
+        # flatten
+        x = x.view(batchsize, -1, height, width)
+
+        return x
+
+class ShuffleNetV2(nn.Module):
+    def __init__(self, num_classes=1000, input_size=224, width_mult=1.):
+        super(ShuffleNetV2, self).__init__()
+        self.num_classes = num_classes
+        self.stage_repeats = [4, 8, 4]
+        # index 0 is invalid and should never be called.
+        # only used for indexing convenience.
+        if width_mult == 0.5:
+            self.stage_out_channels = [-1, 24,  48,  96, 192, 1024]
+        elif width_mult == 1.0:
+            self.stage_out_channels = [-1, 24, 116, 232, 464, 1024]
+        elif width_mult == 1.5:
+            self.stage_out_channels = [-1, 24, 176, 352, 704, 1024]
+        elif width_mult == 2.0:
+            self.stage_out_channels = [-1, 24, 224, 488, 976, 2048]
+        else:
+            raise ValueError(
+                """{} groups is not supported for
+                       1x1 Grouped Convolutions""".format(num_groups))
+
+        # building first layer
+        input_channel = self.stage_out_channels[1]
+        self.conv1 = self.conv_bn(3, input_channel, 2)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.features = []
+        # building inverted residual blocks
+        for idxstage in range(len(self.stage_repeats)):
+            numrepeat = self.stage_repeats[idxstage]
+            output_channel = self.stage_out_channels[idxstage+2]
+            for i in range(numrepeat):
+                if i == 0:
+	            #inp, oup, stride, benchmodel):
+                    self.features.append(ShuffleInvertedResidual(input_channel, output_channel, 2, 2))
+                else:
+                    self.features.append(ShuffleInvertedResidual(input_channel, output_channel, 1, 1))
+                input_channel = output_channel
+                
+                
+        # make it nn.Sequential
+        self.features = nn.Sequential(*self.features)
+
+        # building last several layers
+        self.conv_last      = self.conv_1x1_bn(input_channel, self.stage_out_channels[-1])
+        self.globalpool = nn.Sequential(nn.AvgPool2d(int(input_size/32)))              
+    
+        # building classifier
+        self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1], self.num_classes))
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.maxpool(x)
+        x = self.features(x)
+        x = self.conv_last(x)
+        x = self.globalpool(x)
+        x = x.view(-1, self.stage_out_channels[-1])
+        x = self.classifier(x)
+        return x
+
+    def conv_bn(self, inp, oup, stride):
+        return nn.Sequential(
+            nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+            nn.BatchNorm2d(oup),
+            nn.ReLU(inplace=True)
+        )
+
+    def conv_1x1_bn(self, inp, oup):
+        return nn.Sequential(
+            nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(oup),
+            nn.ReLU(inplace=True)
+        )

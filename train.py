@@ -91,6 +91,12 @@ if __name__ == "__main__":
         )
         model_name = "SqueezeNet"
 
+    elif model_name == "shufflenetv2":
+        model = model_builder.ShuffleNetV2(
+            num_classes=len(class_names)
+        )
+        model_name = "shufflenetv2"
+
     else :
         raise Exception("Wrong Model.")
     
