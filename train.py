@@ -71,6 +71,11 @@ if __name__ == "__main__":
             num_classes=len(class_names)
         )
         model_name = "ResNet18"
+    elif model_name == "efficientnet":
+        model = model_builder.ResNet18(
+            num_classes=len(class_names)
+        )
+        model_name = "EfficientNet"
     
     else :
         raise Exception("Wrong Model.")

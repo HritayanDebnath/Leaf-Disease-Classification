@@ -237,3 +237,41 @@ class ResNet18(nn.Module):
         x = x.view(x.shape[0], -1)
         x = self.fc(x)
         return x 
+
+import torch
+import torch.nn as nn
+
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class EfficientNet(nn.Module):
+    def __init__(self, num_classes=10):
+        super(EfficientNet, self).__init__()
+        self.conv1 = ConvBlock(3, 32, kernel_size=3, padding=1)
+        self.conv2 = ConvBlock(32, 64, kernel_size=3, padding=1)
+        self.conv3 = ConvBlock(64, 128, kernel_size=3, padding=1)
+        self.conv4 = ConvBlock(128, 256, kernel_size=3, padding=1)
+        self.conv5 = ConvBlock(256, 512, kernel_size=3, padding=1)
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=1)
+        self.fc = nn.Linear(512, num_classes)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        return x
