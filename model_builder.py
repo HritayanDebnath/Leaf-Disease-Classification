@@ -2,7 +2,10 @@
 Contains PyTorch model code to instantiate a VGG19 model.
 """
 import torch
-from torch import nn 
+from torch import nn
+import torch.nn.functional as F
+
+### VGG19
 
 class VGG19(nn.Module):
     """
@@ -144,6 +147,9 @@ class VGG19(nn.Module):
         return out
 
 
+
+### ResNet18
+
 class Block(nn.Module):
 
     """
@@ -237,3 +243,216 @@ class ResNet18(nn.Module):
         x = x.view(x.shape[0], -1)
         x = self.fc(x)
         return x 
+
+
+
+### EfficientNet
+
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class EfficientNet(nn.Module):
+    def __init__(self, num_classes=10):
+        super(EfficientNet, self).__init__()
+        self.conv1 = ConvBlock(3, 32, kernel_size=3, padding=1)
+        self.conv2 = ConvBlock(32, 64, kernel_size=3, padding=1)
+        self.conv3 = ConvBlock(64, 128, kernel_size=3, padding=1)
+        self.conv4 = ConvBlock(128, 256, kernel_size=3, padding=1)
+        self.conv5 = ConvBlock(256, 512, kernel_size=3, padding=1)
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=1)
+        self.fc = nn.Linear(512, num_classes)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        return x
+
+
+
+### MobileNetV3
+
+class Hswish(nn.Module):
+    def forward(self, x):
+        return x * F.relu6(x + 3, inplace=True) / 6
+
+class Hsigmoid(nn.Module):
+    def forward(self, x):
+        return F.relu6(x + 3, inplace=True) / 6
+
+class SqueezeExcitation(nn.Module):
+    def __init__(self, in_channels, reduced_channels):
+        super(SqueezeExcitation, self).__init__()
+        self.se = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Conv2d(in_channels, reduced_channels, kernel_size=1, stride=1, padding=0),
+            Hswish(),
+            nn.Conv2d(reduced_channels, in_channels, kernel_size=1, stride=1, padding=0),
+            Hsigmoid()
+        )
+
+    def forward(self, x):
+        se = self.se(x)
+        return x * se
+
+class InvertedResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride, expansion_factor):
+        super(InvertedResidualBlock, self).__init__()
+        hidden_dim = int(round(in_channels * expansion_factor))
+
+        self.use_residual = stride == 1 and in_channels == out_channels
+
+        layers = []
+        if expansion_factor != 1:
+            layers.append(nn.Conv2d(in_channels, hidden_dim, kernel_size=1, stride=1, padding=0, bias=False))
+            layers.append(nn.BatchNorm2d(hidden_dim))
+            layers.append(Hswish())
+
+        layers.append(nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, stride=stride, padding=1, groups=hidden_dim, bias=False))
+        layers.append(nn.BatchNorm2d(hidden_dim))
+        layers.append(Hswish())
+
+        layers.append(nn.Conv2d(hidden_dim, out_channels, kernel_size=1, stride=1, padding=0, bias=False))
+        layers.append(nn.BatchNorm2d(out_channels))
+
+        self.block = nn.Sequential(*layers)
+
+    def forward(self, x):
+        if self.use_residual:
+            return x + self.block(x)
+        else:
+            return self.block(x)
+
+class MobileNetV3_Stem(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(MobileNetV3_Stem, self).__init__()
+        self.stem = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            Hswish()
+        )
+
+    def forward(self, x):
+        return self.stem(x)
+
+class Bottlenecks(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, expansion_factor, repeat):
+        super(Bottlenecks, self).__init__()
+        layers = []
+        for i in range(repeat):
+            if i == 0:
+                layers.append(InvertedResidualBlock(in_channels, out_channels, stride, expansion_factor))
+            else:
+                layers.append(InvertedResidualBlock(out_channels, out_channels, 1, expansion_factor))
+        self.bottlenecks = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.bottlenecks(x)
+
+class Classifier(nn.Module):
+    def __init__(self, in_channels, num_classes):
+        super(Classifier, self).__init__()
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.conv1 = nn.Conv2d(in_channels, 1280, kernel_size=1, stride=1, padding=0, bias=True)
+        self.hswish1 = Hswish()
+        self.dropout = nn.Dropout(p=0.2, inplace=True)
+        self.conv2 = nn.Conv2d(1280, num_classes, kernel_size=1, stride=1, padding=0, bias=True)
+
+    def forward(self, x):
+        x = self.avgpool(x)
+        x = self.conv1(x)
+        x = self.hswish1(x)
+        x = self.dropout(x)
+        x = self.conv2(x)
+        x = x.view(x.size(0), -1)
+        return x
+
+class MobileNetV3(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(MobileNetV3, self).__init__()
+        self.stem = MobileNetV3_Stem(3, 16)
+        self.bottlenecks = nn.Sequential(
+            InvertedResidualBlock(16, 16, 2, 1),
+            InvertedResidualBlock(16, 24, 2, 2),
+            InvertedResidualBlock(24, 40, 2, 2),
+            InvertedResidualBlock(40, 80, 2, 1),
+            InvertedResidualBlock(80, 160, 2, 2),
+            InvertedResidualBlock(160, 320, 2, 1),
+            InvertedResidualBlock(320, 640, 2, 1),
+            InvertedResidualBlock(640, 1280, 2, 1),
+        )
+        self.classifier = Classifier(1280, num_classes)
+
+    def forward(self, x):
+        x = self.stem(x)
+        x = self.bottlenecks(x)
+        x = self.classifier(x)
+        return x
+
+
+### SqueezeNet
+
+class FireModule(nn.Module):
+    def __init__(self, inplanes, squeeze_planes,
+                 expand1x1_planes, expand3x3_planes):
+        super(FireModule, self).__init__()
+        self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
+        self.squeeze_activation = nn.ReLU(inplace=True)
+        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes,
+                                   kernel_size=1)
+        self.expand1x1_activation = nn.ReLU(inplace=True)
+        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes,
+                                   kernel_size=3, padding=1)
+        self.expand3x3_activation = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.squeeze_activation(self.squeeze(x))
+        return torch.cat([
+            self.expand1x1_activation(self.expand1x1(x)),
+            self.expand3x3_activation(self.expand3x3(x))
+        ], 1)
+
+class SqueezeNet(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(SqueezeNet, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 96, kernel_size=7, stride=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            FireModule(96, 16, 64, 64),
+            FireModule(128, 16, 64, 64),
+            FireModule(128, 32, 128, 128),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            FireModule(256, 32, 128, 128),
+            FireModule(256, 48, 192, 192),
+            FireModule(384, 48, 192, 192),
+            FireModule(384, 64, 256, 256),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            FireModule(512, 64, 256, 256),
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5),
+            nn.Conv2d(512, num_classes, kernel_size=1),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d((1, 1))
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return x.view(x.size(0), -1)
