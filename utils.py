@@ -50,7 +50,6 @@ def save_model(
     )
 
 def load_model(
-    model: torch.nn.Module,
     file_dir: str,
     model_name: str
 ) -> Dict:
