@@ -60,11 +60,10 @@ def train_step(
         # Calculate and accumulate accuracy metric across all batches
         y_pred_class = torch.argmax(torch.softmax(y_pred, dim=1), dim=1)
         train_acc += (y_pred_class == y).sum().item()/len(y_pred)
-        if batch % 10 == 0:
-            print(
-                f"\rTraining Progress : {batch} / {len(dataloader)}                                    ",
-                end=""
-            )
+        print(
+            f"\rTraining Progress : {batch + 1} / {len(dataloader)}                                    ",
+            end=""
+        )
 
     # Adjust metrics to get average loss and accuracy per batch 
     train_loss = train_loss / len(dataloader)
@@ -119,8 +118,8 @@ def test_step(
             test_pred_labels = test_pred_logits.argmax(dim=1)
             test_acc += ((test_pred_labels == y).sum().item()/len(test_pred_labels))
             print(
-                f"\rTesting Progress : {batch} / {len(dataloader)}                                 ",
-                end=""
+                f"\rTesting Progress : {batch + 1} / {len(dataloader)}                                 ",
+                end="" 
             )
 
     # Adjust metrics to get average loss and accuracy per batch 

@@ -14,23 +14,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--MODEL")
     parser.add_argument("--TRAINED", default=False)
-    parser.add_argument("--DEVICE", default="cuda")
     parser.add_argument("--EPOCHS")
     parser.add_argument("--BATCH_SIZE", default=8)
-    parser.add_argument("--KERNEL_SIZE", default=3)
-    parser.add_argument("--STRIDE", default=8)
-    parser.add_argument("--LEARNING_RATE", default=0.001, type=float)
-    parser.add_argument("--PADDING", default=1)
 
     args = parser.parse_args()
 
     # Setup hyperparameters
     NUM_EPOCHS = int(args.EPOCHS)
     BATCH_SIZE = int(args.BATCH_SIZE)
-    KERNEL_SIZE = int(args.KERNEL_SIZE)
-    STRIDE = int(args.STRIDE)
-    PADDING = int(args.BATCH_SIZE)
-    LEARNING_RATE = float(args.LEARNING_RATE)
+    LEARNING_RATE = 0.001
 
     # Setup directories
     train_dir = "Datasets/train"
@@ -60,10 +52,7 @@ if __name__ == "__main__":
 
     if model_name == "vgg19":
         model = model_builder.VGG19(
-            num_classes=len(class_names),
-            kernel_size=3,
-            padding=1, 
-            stride=1
+            num_classes=len(class_names)
         )
         model_name = "VGG19"
 
@@ -73,11 +62,11 @@ if __name__ == "__main__":
         )
         model_name = "ResNet18"
 
-    elif model_name == "efficientnet":
-        model = model_builder.EfficientNet(
+    elif model_name == "mnasnet":
+        model = model_builder.MnasNet(
             num_classes=len(class_names)
         )
-        model_name = "EfficientNet"
+        model_name = "MnasNet"
     
     elif model_name == "mobilenetv3":
         model = model_builder.MobileNetV3(
@@ -85,18 +74,41 @@ if __name__ == "__main__":
         )
         model_name = "MobileNetV3"
 
+    elif model_name == "alexnet":
+        model = model_builder.AlexNet(
+            num_classes=len(class_names)
+        )
+        model_name = "AlexNet"
+
+    elif model_name == "shufflenetv2":
+        model = model_builder.ShuffleNetV2(
+            num_classes=len(class_names)
+        )
+        model_name = "ShuffleNetv2"
+
+    
     elif model_name == "squeezenet":
-        model = model_builder.SqueezeNet(
+        model = model_builder.ShuffleNetV2(
             num_classes=len(class_names)
         )
         model_name = "SqueezeNet"
+
+    
+    elif model_name == "efficientnet":
+        model = model_builder.EfficientNet(
+            num_classes=len(class_names)
+        )
+        model_name = "EfficientNet"
 
     else :
         raise Exception("Wrong Model.")
     
 
 
-    trained = args.TRAINED == "True"
+    trained = True if args.TRAINED == "True" else False if args.TRAINED == "False" else None
+    if trained == None:
+        raise Exception("Wrong Argument --TRAINED, \"True\" or \"False\".")
+
     # Load if pre-trained
     if trained:
         model_data = utils.load_model(model = model, file_dir = "models", model_name = f"{model_name}.pth")
