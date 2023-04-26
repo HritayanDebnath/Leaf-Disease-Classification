@@ -49,6 +49,8 @@ if __name__ == "__main__":
     # Create model with help from model_builder.py
     
     model_name = args.MODEL.strip().lower()
+    torch.cuda.manual_seed(42)
+    torch.manual_seed(42)
 
     if model_name == "vgg19":
         model = model_builder.VGG19(
@@ -111,7 +113,7 @@ if __name__ == "__main__":
 
     # Load if pre-trained
     if trained:
-        model_data = utils.load_model(model = model, file_dir = "models", model_name = f"{model_name}.pth")
+        model_data = utils.load_model(file_dir = "models", model_name = f"{model_name}.pth")
         model = model_data["model"]
     
     # Set loss and optimizer

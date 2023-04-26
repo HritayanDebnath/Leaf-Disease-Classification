@@ -1,4 +1,7 @@
 /Datasets
 /__pycache__
 /models/AlexNet.pth
+/models/VGG19.pth
 /results/AlexNet
+/results/VGG19
+/blueberry.JPG
