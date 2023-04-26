@@ -42,10 +42,10 @@ eg.
 
 
 here,
-    * --MODEL : name of the model to train
-    * --TRAINED : True if the model is already trained and re-training for better results, else False
-    * --EPOCHS : Number of epochs to be trained for
-    * --BATCH_SIZE : Number of images to be trained at one go.
+* --MODEL : name of the model to train
+* --TRAINED : True if the model is already trained and re-training for better results, else False
+* --EPOCHS : Number of epochs to be trained for
+* --BATCH_SIZE : Number of images to be trained at one go.
 
 ## To predict with any of the built models,
 
@@ -58,8 +58,9 @@ eg.
     - python train.py --MODEL mobilenetv3 --IMAGE blueberry.jpg
 
 here,
-    * --MODEL : name of the model to be used for prediction (can use 'all' to find prediction with all the trained models)
-    * --IMAGE : path to the image that will be used for the prediction.
+
+* --MODEL : name of the model to be used for prediction (can use 'all' to find prediction with all the trained models)
+* --IMAGE : path to the image that will be used for the prediction.
 
     
 
@@ -74,6 +75,7 @@ eg.
     - python visualize.py --MODEL mobilenetv3
 
 here,
-    * --MODEL : name of the model trained model
+
+* --MODEL : name of the model trained model
 
     
