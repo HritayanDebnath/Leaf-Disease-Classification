@@ -17,18 +17,17 @@ The dataset used to train these models is :-
 
 To Train the for different dataset the files must be structured like this and in this format
 
-Datasets
-    - train
-        - class_name1 
-        - class_name2 
-        - class_name3
-        ... 
-
-    - test
-        - class_name1 
-        - class_name2 
-        - class_name3
-        ... 
+    - Datasets
+        - train
+            - class_name1 
+            - class_name2 
+            - class_name3
+            ...
+        - test
+            - class_name1 
+            - class_name2 
+            - class_name3
+            ...
 
 
 ## To train with any of the built models,
