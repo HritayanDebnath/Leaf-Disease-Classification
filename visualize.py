@@ -48,17 +48,20 @@ if __name__ == "__main__":
     train_acc = [float(e) for e in data["train_acc"]]
     test_acc = [float(e) for e in data["test_acc"]]
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
 
-    ax1.plot(epoch, train_loss)
-    ax1.plot(epoch, test_loss)
+    ax1.plot(epoch, train_loss, label='Train Loss', color="blue")
+    ax1.plot(epoch, test_loss, label='Test Loss', color="red", linestyle="--")
     ax1.set_xlabel('Epochs')
     ax1.set_title('Loss')
+    ax1.legend()
 
-    ax2.plot(epoch, train_acc)
-    ax2.plot(epoch, test_acc)
+    ax2.plot(epoch, train_acc, label='Train Accuracy', color="blue")
+    ax2.plot(epoch, test_acc, label='Test Accuracy', color="red", linestyle="--")
     ax2.set_xlabel('Epochs')
     ax2.set_title('Accuracy')
+    
+    ax2.legend()
 
     fig.suptitle(f"Model Summary : {model_name}")
     plt.show()
