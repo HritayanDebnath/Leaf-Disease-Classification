@@ -12,7 +12,8 @@ In this project we have implemented 8 models namely
 
 
 The dataset used to train these models is :-
-    - https://www.kaggle.com/datasets/vipoooool/new-plant-diseases-dataset
+
+https://www.kaggle.com/datasets/vipoooool/new-plant-diseases-dataset
 
 
 To Train the for different dataset the files must be structured like this and in this format
