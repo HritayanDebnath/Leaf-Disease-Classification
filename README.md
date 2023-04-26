@@ -39,7 +39,7 @@ https://www.kaggle.com/datasets/vipoooool/new-plant-diseases-dataset
 
 ## To train with any of the built models,
 
-### Use this command in the root directory of this project
+#### Use this command in the root directory of this project
 
     - python train.py --MODEL [model_name]  --TRAINED  [True, False] --EPOCHS [num_of_epochs] --BATCH_SIZE [images_per_batch]
 
@@ -59,7 +59,7 @@ here,
 
 ## To predict with any of the built models,
 
-### Use this command in the root directory of this project
+#### Use this command in the root directory of this project
 
     - python predict.py --MODEL [model_name]  --IMAGE ["path/to/image"]
 
@@ -76,7 +76,7 @@ here,
 
 ## To visualize the history of the training process
 
-### Use this command in the root directory of this project 
+#### Use this command in the root directory of this project 
 
     - python visualize.py --MODEL [model_name]
 
