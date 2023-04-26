@@ -34,28 +34,32 @@ To Train the for different dataset the files must be structured like this and in
 
 Use this command in the root directory of this project
 
- - python train.py --MODEL [model_name]  --TRAINED  [True, False] --EPOCHS [num_of_epochs] --BATCH_SIZE [images_per_batch]
+    - python train.py --MODEL [model_name]  --TRAINED  [True, False] --EPOCHS [num_of_epochs] --BATCH_SIZE [images_per_batch]
 
-    eg. python train.py --MODEL alexnet --TRAINED True --EPOCHS 10 --BATCH_SIZE 16
+    eg.
+
+    - python train.py --MODEL alexnet --TRAINED True --EPOCHS 10 --BATCH_SIZE 16
 
 
-    here,
-     --MODEL : name of the model to train
-     --TRAINED : True if the model is already trained and re-training for better results, else False
-     --EPOCHS : Number of epochs to be trained for
-     --BATCH_SIZE : Number of images to be trained at one go.
+here,
+    * --MODEL : name of the model to train
+    * --TRAINED : True if the model is already trained and re-training for better results, else False
+    * --EPOCHS : Number of epochs to be trained for
+    * --BATCH_SIZE : Number of images to be trained at one go.
 
 ## To predict with any of the built models,
 
 Use this command in the root directory of this project
 
- - python predict.py --MODEL [model_name]  --IMAGE ["path/to/image"]
+    - python predict.py --MODEL [model_name]  --IMAGE ["path/to/image"]
 
-    eg. python train.py --MODEL mobilenetv3 --IMAGE blueberry.jpg
+    eg. 
+    
+    - python train.py --MODEL mobilenetv3 --IMAGE blueberry.jpg
 
     here,
-     --MODEL : name of the model to be used for prediction (can use 'all' to find prediction with all the trained models)
-     --IMAGE : path to the image that will be used for the prediction.
+    * --MODEL : name of the model to be used for prediction (can use 'all' to find prediction with all the trained models)
+    * --IMAGE : path to the image that will be used for the prediction.
 
     
 
@@ -63,11 +67,13 @@ Use this command in the root directory of this project
 
 Use this command in the root directory of this project 
 
- - python visualize.py --MODEL [model_name]
+    - python visualize.py --MODEL [model_name]
 
-    eg. python visualize.py --MODEL mobilenetv3
+    eg. 
+    
+    - python visualize.py --MODEL mobilenetv3
 
     here,
-     --MODEL : name of the model trained model
+    * --MODEL : name of the model trained model
 
     
