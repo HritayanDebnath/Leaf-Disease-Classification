@@ -93,6 +93,13 @@ if __name__ == "__main__":
         )
         model_name = "SqueezeNet"
 
+    
+    elif model_name == "efficientnet":
+        model = model_builder.EfficientNet(
+            num_classes=len(class_names)
+        )
+        model_name = "EfficientNet"
+
     else :
         raise Exception("Wrong Model.")
     

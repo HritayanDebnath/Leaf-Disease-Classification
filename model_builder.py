@@ -1,10 +1,11 @@
 """
-Contains PyTorch model code to instantiate a VGG19 model.
+Contains PyTorch model code to instantiate a CNN models.
 """
 import torch
 from torch import nn
 import torch.nn.functional as F
 import math
+from collections import OrderedDict
 
 ### VGG19
 
@@ -809,21 +810,10 @@ class MBEffConvBlock(nn.Module):
         return x
 
 class EfficientNet(nn.Module):
-    def __init__(self, arch="bo", num_classes=1000):
+    def __init__(self, num_classes=1000):
         super(EfficientNet, self).__init__()
 
-        arch_params = {
-            # arch width_multi depth_multi input_h dropout_rate
-            'b0': (1.0, 1.0, 224, 0.2),
-            'b1': (1.0, 1.1, 240, 0.2),
-            'b2': (1.1, 1.2, 260, 0.3),
-            'b3': (1.2, 1.4, 300, 0.3),
-            'b4': (1.4, 1.8, 380, 0.4),
-            'b5': (1.6, 2.2, 456, 0.4),
-            'b6': (1.8, 2.6, 528, 0.5),
-            'b7': (2.0, 3.1, 600, 0.5),
-        }
-        width_multi, depth_multi, net_h, dropout_rate = arch_params[arch]
+        width_multi, depth_multi, net_h, dropout_rate = (1.0, 1.1, 240, 0.2)
 
         settings = [
             # t, c,  n, k, s, d
