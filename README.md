@@ -55,7 +55,7 @@ Use this command in the root directory of this project
     eg. python train.py --MODEL mobilenetv3 --IMAGE blueberry.jpg
 
     here,
-     --MODEL : name of the model to be used for prediction
+     --MODEL : name of the model to be used for prediction (can use 'all' to find prediction with all the trained models)
      --IMAGE : path to the image that will be used for the prediction.
 
     
