@@ -36,7 +36,7 @@ Use this command in the root directory of this project
 
     - python train.py --MODEL [model_name]  --TRAINED  [True, False] --EPOCHS [num_of_epochs] --BATCH_SIZE [images_per_batch]
 
-    eg.
+eg.
 
     - python train.py --MODEL alexnet --TRAINED True --EPOCHS 10 --BATCH_SIZE 16
 
@@ -53,11 +53,11 @@ Use this command in the root directory of this project
 
     - python predict.py --MODEL [model_name]  --IMAGE ["path/to/image"]
 
-    eg. 
+eg. 
     
     - python train.py --MODEL mobilenetv3 --IMAGE blueberry.jpg
 
-    here,
+here,
     * --MODEL : name of the model to be used for prediction (can use 'all' to find prediction with all the trained models)
     * --IMAGE : path to the image that will be used for the prediction.
 
@@ -69,11 +69,11 @@ Use this command in the root directory of this project
 
     - python visualize.py --MODEL [model_name]
 
-    eg. 
+eg. 
     
     - python visualize.py --MODEL mobilenetv3
 
-    here,
+here,
     * --MODEL : name of the model trained model
 
     
