@@ -11,12 +11,16 @@ In this project we have implemented 8 models namely
 * VGG19 (not ready to use in the repository, but can be trained for usage)
 
 
-The dataset used to train these models is :-
+
+
+### The dataset used to train these models is :-
 
 https://www.kaggle.com/datasets/vipoooool/new-plant-diseases-dataset
 
 
-To Train the for different dataset the files must be structured like this and in this format
+
+
+### To Train the for different dataset the files must be structured like this and in this format
 
     - Datasets
         - train
@@ -29,6 +33,8 @@ To Train the for different dataset the files must be structured like this and in
             - class_name2 
             - class_name3
             ...
+
+
 
 
 ## To train with any of the built models,
@@ -47,6 +53,9 @@ here,
 * --TRAINED : True if the model is already trained and re-training for better results, else False
 * --EPOCHS : Number of epochs to be trained for
 * --BATCH_SIZE : Number of images to be trained at one go.
+
+
+
 
 ## To predict with any of the built models,
 
