@@ -50,6 +50,7 @@ if __name__ == "__main__":
     torch.manual_seed(42)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     image = Image.open(image)
+    image = transforms.Resize((224,224))(image)
     image_tensor = transforms.ToTensor()(image)
     image_tensor = image_tensor.unsqueeze(dim=0).to(device)
 
